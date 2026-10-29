@@ -14,3 +14,4 @@ ui/node_modules/
 shim/version.dll
 driver/vmstub.sys
 HANDOFF.md
+__pycache__/
