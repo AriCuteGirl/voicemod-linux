@@ -50,7 +50,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          files="dist/*.AppImage dist/*.deb dist/*.rpm dist/*.pacman dist/*.tar.gz"
+          (cd dist && sha256sum *.AppImage *.deb *.rpm *.pacman *.tar.gz > SHA256SUMS)
+          files="dist/*.AppImage dist/*.deb dist/*.rpm dist/*.pacman dist/*.tar.gz dist/SHA256SUMS"
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" $files --clobber
           else

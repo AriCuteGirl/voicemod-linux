@@ -50,6 +50,52 @@ PipeWire (with `pipewire-pulse`) or PulseAudio is required.
 Voicemod only processes your mic while an app is listening to the virtual mic, just like on
 Windows. Closing the window stops the engine and removes the virtual devices.
 
+## Action Wheel and shortcuts
+
+Voicemod's Windows hotkeys can't see your keyboard under Wine/Wayland, so the app installs a
+small command, `voicemod-ctl` (in `~/.local/bin`), for your compositor's key binds:
+
+```text
+voicemod-ctl wheel show | release | toggle     Action Wheel overlay
+voicemod-ctl voice NAME | random | list        switch voice (partial names work)
+voicemod-ctl sound NAME | stop | list          soundboard
+voicemod-ctl voice-changer on|off|toggle
+voicemod-ctl hear-myself on|off|toggle
+voicemod-ctl mute on|off|toggle
+```
+
+**Hyprland** (`hyprland.conf`): hold Alt+V for the wheel, release to pick, like on Windows.
+
+```ini
+bind  = ALT, V, exec, voicemod-ctl wheel show
+bindr = ALT, V, exec, voicemod-ctl wheel release
+bind  = ALT, B, exec, voicemod-ctl voice-changer toggle
+bind  = ALT, N, exec, voicemod-ctl voice random
+
+windowrule = float, title:^(Voicemod Wheel)$
+windowrule = pin, title:^(Voicemod Wheel)$
+windowrule = size 100% 100%, title:^(Voicemod Wheel)$
+windowrule = move 0 0, title:^(Voicemod Wheel)$
+windowrule = noanim, title:^(Voicemod Wheel)$
+windowrule = noblur, title:^(Voicemod Wheel)$
+windowrule = noshadow, title:^(Voicemod Wheel)$
+```
+
+Lua config (Hyprland 0.56+):
+
+```lua
+hl.bind("ALT + V", hl.dsp.exec_cmd("voicemod-ctl wheel show"))
+hl.bind("ALT + V", hl.dsp.exec_cmd("voicemod-ctl wheel release"), { release = true })
+for _, rule in ipairs({ {float = true}, {pin = true}, {size = {"(monitor_w)", "(monitor_h)"}},
+                        {move = {0, 0}}, {no_anim = true}, {no_blur = true}, {no_shadow = true} }) do
+    rule.match = { title = "^(Voicemod Wheel)$" }
+    hl.window_rule(rule)
+end
+```
+
+Other compositors: bind keys to the same commands (KDE/GNOME custom shortcuts work too).
+In games that lock the mouse pointer the wheel may not follow the mouse.
+
 ### Tips
 
 - **Discord:** turn off Krisp noise suppression, echo cancellation and automatic gain, and set
@@ -91,7 +137,8 @@ Run from a checkout without packaging: `./voicemod-linux.sh setup` once, then `.
 
 ## Known issues
 
-- One voice fails to load (`Error during string conversion NoReverb to float`).
+- Some voices fail to load inside the engine (`Error during string conversion NoReverb/NoSpace to float`,
+  e.g. Clean Mic and Banana). Not caused by the system locale; still being investigated.
 - Voicemod's Control API (port 59129) listens on all network interfaces, like on Windows.
 - Tested on Arch-based distros with Hyprland, PipeWire and Wine 11.
 

@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""Control the running Voicemod Linux app, e.g. from compositor key binds.
+
+  voicemod-ctl wheel show       open the Action Wheel (bind to key press)
+  voicemod-ctl wheel release    run the highlighted action and close (bind to key release)
+  voicemod-ctl wheel toggle     open, or run + close if already open
+  voicemod-ctl show             bring the Voicemod window to the front
+
+  voicemod-ctl voice NAME       switch voice (name match: exact, start, then contains)
+  voicemod-ctl voice random     random voice
+  voicemod-ctl voice list       list voices you can use
+  voicemod-ctl sound NAME       play a soundboard sound into the virtual mic
+  voicemod-ctl sound stop       stop all sounds
+  voicemod-ctl sound list       list sounds you can use
+  voicemod-ctl voice-changer on|off|toggle
+  voicemod-ctl hear-myself on|off|toggle
+  voicemod-ctl mute on|off|toggle
+"""
+import os
+import socket
+import sys
+import tempfile
+
+SOCKET = os.path.join(os.environ.get("XDG_RUNTIME_DIR") or tempfile.gettempdir(), "voicemod-linux.sock")
+
+
+def main():
+    args = sys.argv[1:]
+    if not args or args[0] in ("-h", "--help", "help"):
+        print(__doc__.strip())
+        return 0
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as conn:
+            conn.settimeout(5)
+            conn.connect(SOCKET)
+            conn.sendall((" ".join(args) + "\n").encode())
+            reply = b""
+            while chunk := conn.recv(4096):
+                reply += chunk
+    except OSError:
+        print("voicemod-ctl: Voicemod Linux is not running", file=sys.stderr)
+        return 1
+    text = reply.decode().strip()
+    if text != "ok":
+        print(text, file=sys.stderr if text.startswith("error") else sys.stdout)
+    return 1 if text.startswith("error") else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

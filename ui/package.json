@@ -1,6 +1,6 @@
 {
   "name": "voicemod-linux",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Run the Voicemod voice changer on Linux: Windows engine under Wine, native window and PipeWire virtual mic",
   "main": "main.js",
   "private": true,
@@ -25,7 +25,9 @@
     },
     "files": [
       "main.js",
+      "engine.js",
       "preload.js",
+      "wheel-preload.js",
       "launcher.html",
       "launcher.js",
       "package.json"
@@ -56,7 +58,8 @@
         "to": "voicemod/tools",
         "filter": [
           "extract_qrc.py",
-          "vad-watch.py"
+          "vad-watch.py",
+          "voicemod-ctl"
         ]
       }
     ],

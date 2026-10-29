@@ -4,7 +4,10 @@
 const { app, BrowserWindow, protocol, net, ipcMain, shell } = require('electron');
 const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const sockets = require('net');
+const { EngineClient, runEngineCommand, ENGINE_HELP } = require('./engine');
 const { pathToFileURL } = require('url');
 
 // Our own files: resources/voicemod in a packaged build, else the repository checkout.
@@ -21,6 +24,8 @@ const VM_DATA = path.join(PREFIX, 'drive_c/users', process.env.USER, 'AppData/Lo
 const ENGINE_LOG = path.join(VM_DATA, 'logs/voicemod-desktop.log');
 const DEBUG_LOG = path.join(VM_DATA, 'logs/linux-ui.log');
 const CONTROL_API_PORT = 59129;
+// voicemod-ctl (installed into ~/.local/bin) talks to this socket; see handleControl().
+const CONTROL_SOCKET = path.join(process.env.XDG_RUNTIME_DIR || os.tmpdir(), 'voicemod-linux.sock');
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'vm', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
@@ -143,7 +148,11 @@ const isSetUp = () => fs.existsSync(path.join(FRONTEND, 'index.html')) &&
 const linkFromArgs = (argv) => argv.find((a) => a.startsWith('voicemod:'));
 
 let win = null;
+let wheel = null;
+let wheelOpen = false;
+let wheelHideTimer = null;
 let engineStarted = false;
+let brigittePort = null;
 
 function status(text) {
   win?.webContents.send('launcher-line', text);
@@ -154,6 +163,122 @@ async function forwardLink(url) {
   await runScript(['url', url]);
   win?.show();
   win?.focus();
+}
+
+// The Action Wheel lives in its own transparent window that stays loaded and connected, so
+// opening it is instant. Hyprland rules (title "Voicemod Wheel") make it a pinned overlay.
+function createWheel(port) {
+  wheel = new BrowserWindow({
+    show: false,
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    hasShadow: false,
+    fullscreenable: false,
+    width: 1920,
+    height: 1080,
+    title: 'Voicemod Wheel',
+    webPreferences: {
+      preload: path.join(__dirname, 'wheel-preload.js'),
+      contextIsolation: false,
+      sandbox: false,
+    },
+  });
+  wheel.setAlwaysOnTop(true, 'screen-saver');
+  wheel.on('page-title-updated', (e) => e.preventDefault());
+  const query = new URLSearchParams({
+    port: String(port),
+    t: String(Date.now()),
+    deviceId: readDeviceId(),
+    appVersion: readVersion(),
+    env: 'production',
+  });
+  wheel.loadURL(`vm://app/wheel/index.html?${query}`);
+  wheel.on('closed', () => { wheel = null; wheelOpen = false; });
+}
+
+function hideWheel() {
+  clearTimeout(wheelHideTimer);
+  wheelOpen = false;
+  wheel?.hide();
+}
+
+function showWheel() {
+  if (!wheel || wheelOpen) return;
+  wheelOpen = true;
+  wheel.show();
+  wheel.focus();
+  wheel.webContents.send('wheel-show');
+}
+
+function releaseWheel() {
+  if (!wheel || !wheelOpen) return;
+  wheel.webContents.send('wheel-release');
+  // The page reports WheelHidden after its closing animation; don't stay up if it doesn't.
+  clearTimeout(wheelHideTimer);
+  wheelHideTimer = setTimeout(hideWheel, 1500);
+}
+
+const CONTROL_HELP = `commands:\nwheel show|release|toggle\nshow\n${ENGINE_HELP}`;
+let engineClient = null;
+
+async function handleControl(line) {
+  const [cmd, ...rest] = line.trim().split(/\s+/);
+  const arg = rest[0];
+  if (cmd === 'wheel') {
+    if (!wheel) return 'error: engine not ready';
+    if (arg === 'show') showWheel();
+    else if (arg === 'release' || arg === 'hide') releaseWheel();
+    else if (arg === 'toggle' || !arg) (wheelOpen ? releaseWheel : showWheel)();
+    else return `error: ${CONTROL_HELP}`;
+    return 'ok';
+  }
+  if (cmd === 'show') {
+    win?.show();
+    win?.focus();
+    return 'ok';
+  }
+  if (!brigittePort) return 'error: engine not ready';
+  engineClient ??= new EngineClient(brigittePort);
+  try {
+    const reply = await runEngineCommand(engineClient, cmd, rest);
+    if (reply !== null) return reply;
+  } catch (err) {
+    return `error: ${err.message}`;
+  }
+  return `error: ${CONTROL_HELP}`;
+}
+
+function startControlServer() {
+  try { fs.unlinkSync(CONTROL_SOCKET); } catch { /* not there */ }
+  const server = sockets.createServer((conn) => {
+    let buffer = '';
+    conn.on('data', async (chunk) => {
+      buffer += chunk;
+      if (!buffer.includes('\n')) return;
+      const reply = await handleControl(buffer.split('\n')[0]);
+      conn.end(String(reply) + '\n');
+    });
+  });
+  server.listen(CONTROL_SOCKET, () => fs.chmodSync(CONTROL_SOCKET, 0o600));
+  app.on('will-quit', () => { try { fs.unlinkSync(CONTROL_SOCKET); } catch { /* gone */ } });
+}
+
+// Put voicemod-ctl on PATH so compositor binds can reach the running app.
+function installCtl() {
+  const src = path.join(RES, 'tools', 'voicemod-ctl');
+  const dest = path.join(os.homedir(), '.local/bin/voicemod-ctl');
+  try {
+    const content = fs.readFileSync(src);
+    if (fs.existsSync(dest) && fs.readFileSync(dest).equals(content)) return;
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, content, { mode: 0o755 });
+  } catch (err) {
+    console.error(`could not install voicemod-ctl: ${err.message}`);
+  }
 }
 
 async function launch() {
@@ -167,6 +292,8 @@ async function launch() {
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true },
   });
+  // The hidden wheel window would otherwise keep the app alive after the main window closes.
+  win.on('closed', () => app.quit());
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url)) shell.openExternal(url);
     return { action: 'deny' };
@@ -199,7 +326,9 @@ async function launch() {
   }
   const pending = linkFromArgs(process.argv);
   if (pending) forwardLink(pending);
+  brigittePort = port;
   win.loadURL(pageUrl(port));
+  createWheel(port);
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -227,7 +356,10 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.handle('open-url', (_e, url) => {
       if (/^https?:\/\//.test(url)) shell.openExternal(url);
     });
+    ipcMain.on('wheel-closed', () => setTimeout(hideWheel, 200));
 
+    installCtl();
+    startControlServer();
     launch();
   });
 
