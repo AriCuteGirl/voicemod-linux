@@ -29,6 +29,12 @@ const MUSIC_CSS = `
   display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px #0008}
 #vml-music-btn:hover{background:#22222b}
 #vml-music-btn.on{border-color:#1ee0d0;color:#1ee0d0}
+#vml-music-btn svg{width:18px;height:18px}
+#vml-music-btn.in-bar{position:relative;right:auto;bottom:auto;z-index:auto;flex:none;width:3.75rem;height:3.75rem;
+  border-radius:var(--hy-space-xs,8px);border:1px solid transparent;
+  background:var(--hy-color-surface-neutral-panel-inset-emphasis,#1d1d24);box-shadow:inset 0 2px 1px #000}
+#vml-music-btn.in-bar svg{width:30px;height:30px}
+#vml-music-btn.in-bar.on{border-color:#1ee0d0;box-shadow:inset 0 2px 1px #000,0 0 12px #1ee0d066}
 #vml-music-panel{position:fixed;right:16px;bottom:66px;z-index:2147483000;width:280px;padding:14px;
   border-radius:12px;background:#17171d;border:1px solid #2a2a33;color:#e8e8ef;
   font:13px/1.4 Inter,system-ui,sans-serif;box-shadow:0 10px 30px #000a;display:none}
@@ -57,7 +63,31 @@ function mountMusicPanel() {
   const panel = document.createElement('div');
   panel.id = 'vml-music-panel';
   document.head.append(style);
-  document.body.append(panel, button);
+  document.body.append(panel);
+
+  // Sit in Voicemod's floating bar next to its sound square; Vue may re-render the bar, so
+  // keep putting the button back. Screens without the bar get the corner button instead.
+  const place = () => {
+    const toolbar = document.querySelector('.floating-bar__toolbar');
+    if (toolbar && button.parentElement !== toolbar) {
+      button.classList.add('in-bar');
+      toolbar.append(button);
+    } else if (!toolbar && button.parentElement !== document.body) {
+      button.classList.remove('in-bar');
+      document.body.append(button);
+    }
+  };
+  new MutationObserver(place).observe(document.body, { childList: true, subtree: true });
+  place();
+
+  // Open the panel just above wherever the button currently is.
+  const positionPanel = () => {
+    const rect = button.getBoundingClientRect();
+    const width = 280;
+    panel.style.bottom = `${window.innerHeight - rect.top + 10}px`;
+    panel.style.left = `${Math.max(8, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 8))}px`;
+    panel.style.right = 'auto';
+  };
 
   let timer = null;
   const render = async () => {
@@ -83,6 +113,7 @@ function mountMusicPanel() {
     const open = panel.classList.toggle('open');
     clearInterval(timer);
     if (open) {
+      positionPanel();
       render();
       timer = setInterval(render, 2000);
     }

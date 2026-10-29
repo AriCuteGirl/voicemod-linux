@@ -97,7 +97,7 @@ Other compositors: bind keys to the same commands (KDE/GNOME custom shortcuts wo
 
 ## Music through the mic
 
-Click the ♪ button in the bottom-right corner of the app to pick apps (Spotify, a browser,
+Click the ♪ button in the app's bottom control bar (next to the voice controls) to pick apps (Spotify, a browser,
 a game…) whose sound should also go out through the Voicemod mic. You keep hearing them as
 normal; the voice effects are not applied to them. From the command line:
 
