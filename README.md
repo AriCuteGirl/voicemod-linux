@@ -28,11 +28,11 @@ for the AppImage install them yourself:
 
 ```bash
 # Arch / EndeavourOS / Manjaro
-sudo pacman -S --needed wine winetricks cabextract unzip curl python libpulse fuse2
+sudo pacman -S --needed wine winetricks cabextract unzip curl python libpulse pipewire fuse2
 # Debian / Ubuntu (winetricks is in "contrib" on Debian)
-sudo apt install wine winetricks cabextract unzip curl python3 pulseaudio-utils libfuse2
+sudo apt install wine winetricks cabextract unzip curl python3 pulseaudio-utils pipewire-bin libfuse2
 # Fedora
-sudo dnf install wine winetricks cabextract unzip curl python3 pulseaudio-utils fuse-libs
+sudo dnf install wine winetricks cabextract unzip curl python3 pulseaudio-utils pipewire-utils fuse-libs
 ```
 
 PipeWire (with `pipewire-pulse`) or PulseAudio is required.
@@ -94,6 +94,20 @@ end
 ```
 
 Other compositors: bind keys to the same commands (KDE/GNOME custom shortcuts work too).
+
+## Music through the mic
+
+Click the ♪ button in the bottom-right corner of the app to pick apps (Spotify, a browser,
+a game…) whose sound should also go out through the Voicemod mic. You keep hearing them as
+normal; the voice effects are not applied to them. From the command line:
+
+```bash
+voicemod-ctl music on spotify      # or any app name as shown in pavucontrol
+voicemod-ctl music off spotify
+voicemod-ctl music status
+```
+
+Use the app's own volume slider to balance music against your voice.
 In games that lock the mouse pointer the wheel may not follow the mouse.
 
 ### Tips

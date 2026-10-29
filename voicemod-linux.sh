@@ -27,7 +27,7 @@ export WINEDLLOVERRIDES="version=n,b${WINEDLLOVERRIDES:+;$WINEDLLOVERRIDES}"
 VM_DATA="$WINEPREFIX/drive_c/users/$USER/AppData/Local/VoicemodV3"
 APP="$VM_DATA/app"
 VAD_NAME="Voicemod Virtual Audio Device (WDM)"
-REQUIRED_TOOLS="wine wineserver winetricks pactl python3 curl unzip cabextract"
+REQUIRED_TOOLS="wine wineserver winetricks pactl pw-link python3 curl unzip cabextract"
 
 log() { printf '[voicemod-linux] %s\n' "$*" >&2; }
 

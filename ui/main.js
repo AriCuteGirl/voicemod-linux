@@ -26,6 +26,8 @@ const DEBUG_LOG = path.join(VM_DATA, 'logs/linux-ui.log');
 const CONTROL_API_PORT = 59129;
 // voicemod-ctl (installed into ~/.local/bin) talks to this socket; see handleControl().
 const CONTROL_SOCKET = path.join(process.env.XDG_RUNTIME_DIR || os.tmpdir(), 'voicemod-linux.sock');
+// Apps whose sound is also sent through the virtual mic; tools/vad-watch.py does the linking.
+const MUSIC_FILE = path.join(process.env.XDG_RUNTIME_DIR || os.tmpdir(), 'voicemod-linux-music');
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'vm', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
@@ -267,6 +269,37 @@ function startControlServer() {
   app.on('will-quit', () => { try { fs.unlinkSync(CONTROL_SOCKET); } catch { /* gone */ } });
 }
 
+function routedMusicApps() {
+  try {
+    return fs.readFileSync(MUSIC_FILE, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+// Apps currently playing sound, for the "music through mic" panel.
+function playingApps() {
+  const out = spawnSync('pactl', ['-f', 'json', 'list', 'sink-inputs'], { env: { ...scriptEnv(), LC_ALL: 'C' } });
+  let inputs = [];
+  try { inputs = JSON.parse(out.stdout.toString() || '[]'); } catch { /* pactl missing or odd output */ }
+  const names = new Set();
+  for (const input of inputs) {
+    const p = input.properties || {};
+    const name = p['node.name'] || p['application.name'];
+    if (!name || /voicemod/i.test(name) || /^wine/.test(p['application.process.binary'] || '')) continue;
+    if (Number(p['application.process.id']) === process.pid) continue;
+    names.add(name);
+  }
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+function setMusicApp(app, on) {
+  const key = String(app).trim().toLowerCase();
+  const apps = routedMusicApps().filter((a) => a !== key);
+  if (on) apps.push(key);
+  fs.writeFileSync(MUSIC_FILE, apps.map((a) => a + '\n').join(''));
+}
+
 // Put voicemod-ctl on PATH so compositor binds can reach the running app.
 function installCtl() {
   const src = path.join(RES, 'tools', 'voicemod-ctl');
@@ -357,6 +390,8 @@ if (!app.requestSingleInstanceLock()) {
       if (/^https?:\/\//.test(url)) shell.openExternal(url);
     });
     ipcMain.on('wheel-closed', () => setTimeout(hideWheel, 200));
+    ipcMain.handle('music-state', () => ({ playing: playingApps(), routed: routedMusicApps() }));
+    ipcMain.handle('music-set', (_e, app, on) => setMusicApp(app, on));
 
     installCtl();
     startControlServer();
