@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'self'">
+  <title>Voicemod</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0; height: 100vh; display: flex; flex-direction: column; justify-content: center;
+      padding: 0 48px; box-sizing: border-box; background: #0d0d12; color: #e8e8ef;
+      font: 14px/1.5 system-ui, sans-serif;
+    }
+    h1 { font-size: 22px; font-weight: 600; margin: 0 0 6px; }
+    #status { color: #9aa0b4; margin: 0 0 16px; }
+    #status.failed { color: #ff6b6b; }
+    pre {
+      margin: 0; height: 45vh; overflow: auto; padding: 12px 14px; border-radius: 8px;
+      background: #15151d; color: #b8bdd0; font: 12px/1.45 ui-monospace, monospace; white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>Voicemod</h1>
+  <p id="status">Starting…</p>
+  <pre id="log"></pre>
+  <script src="launcher.js"></script>
+</body>
+</html>

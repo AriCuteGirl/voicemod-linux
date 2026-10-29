@@ -1,0 +1,16 @@
+# Voicemod's own files and local state never go in the repo
+prefix/
+work/
+case/
+frontend/
+qrc/
+cache/
+.voicemod-version
+voicemod.png
+
+# build output
+dist/
+ui/node_modules/
+shim/version.dll
+driver/vmstub.sys
+HANDOFF.md

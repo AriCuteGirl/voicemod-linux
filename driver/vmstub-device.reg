@@ -1,0 +1,48 @@
+REGEDIT4
+
+; Device entry for the stub driver, so Voicemod's VADService::checkDriverVersion finds
+; "Voicemod Virtual Audio Device (WDM)" through SetupAPI and reads the version it expects.
+; MEDIA class GUID; DriverVersion must equal the string compiled into Voicemod.exe.
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\ROOT\MEDIA\0000]
+"DeviceDesc"="Voicemod Virtual Audio Device (WDM)"
+"FriendlyName"="Voicemod Virtual Audio Device (WDM)"
+"HardwareID"=hex(7):2a,56,4d,44,72,69,76,65,72,00,00
+"Class"="MEDIA"
+"ClassGUID"="{4d36e96c-e325-11ce-bfc1-08002be10318}"
+"Driver"="{4d36e96c-e325-11ce-bfc1-08002be10318}\\0000"
+"Mfg"="Voicemod"
+"Service"="vmstub"
+"ConfigFlags"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Class\{4d36e96c-e325-11ce-bfc1-08002be10318}]
+"Class"="MEDIA"
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Class\{4d36e96c-e325-11ce-bfc1-08002be10318}\0000]
+"DriverDesc"="Voicemod Virtual Audio Device (WDM)"
+"DriverVersion"="2022.6.1.0"
+"DriverDate"="6-1-2022"
+"ProviderName"="Voicemod"
+"MatchingDeviceId"="*VMDriver"
+"InfPath"="oem0.inf"
+
+; Newer "kSysVad" driver: matched by a description containing "Voicemod" but not
+; "Voicemod Virtual A". Voicemod checks this one's version after login.
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\ROOT\MEDIA\0001]
+"DeviceDesc"="Voicemod"
+"FriendlyName"="Voicemod"
+"HardwareID"=hex(7):2a,56,4d,44,72,69,76,65,72,00,00
+"Class"="MEDIA"
+"ClassGUID"="{4d36e96c-e325-11ce-bfc1-08002be10318}"
+"Driver"="{4d36e96c-e325-11ce-bfc1-08002be10318}\\0001"
+"Mfg"="Voicemod"
+"Service"="vmstub"
+"ConfigFlags"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Class\{4d36e96c-e325-11ce-bfc1-08002be10318}\0001]
+"DriverDesc"="Voicemod"
+"DriverVersion"="2022.6.1.0"
+"DriverDate"="6-1-2022"
+"ProviderName"="Voicemod"
+"MatchingDeviceId"="*VMDriver"
+"InfPath"="oem1.inf"

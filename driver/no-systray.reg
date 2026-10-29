@@ -1,0 +1,9 @@
+REGEDIT4
+
+; Hide Wine's fallback system-tray window (a small bar showing Voicemod's tray icon).
+; The Linux UI replaces the tray menu, so nothing is lost.
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer]
+"NoTrayItemsDisplay"=dword:00000001
+
+[HKEY_CURRENT_USER\Software\Wine\Explorer]
+"ShowSystray"=dword:00000000

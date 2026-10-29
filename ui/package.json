@@ -1,0 +1,124 @@
+{
+  "name": "voicemod-linux",
+  "version": "0.1.0",
+  "description": "Run the Voicemod voice changer on Linux: Windows engine under Wine, native window and PipeWire virtual mic",
+  "main": "main.js",
+  "private": true,
+  "author": "AriCuteGirl <AriCuteGirl@users.noreply.github.com>",
+  "homepage": "https://github.com/AriCuteGirl/voicemod-linux",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "make -C .. && electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "44.9.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "io.github.aricutegirl.voicemod-linux",
+    "productName": "Voicemod Linux",
+    "executableName": "voicemod-linux",
+    "artifactName": "voicemod-linux-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "../dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "launcher.html",
+      "launcher.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../voicemod-linux.sh",
+        "to": "voicemod/voicemod-linux.sh"
+      },
+      {
+        "from": "icon.png",
+        "to": "voicemod/icon.png"
+      },
+      {
+        "from": "../shim/version.dll",
+        "to": "voicemod/shim/version.dll"
+      },
+      {
+        "from": "../driver",
+        "to": "voicemod/driver",
+        "filter": [
+          "vmstub.sys",
+          "*.reg"
+        ]
+      },
+      {
+        "from": "../tools",
+        "to": "voicemod/tools",
+        "filter": [
+          "extract_qrc.py",
+          "vad-watch.py"
+        ]
+      }
+    ],
+    "protocols": [
+      {
+        "name": "Voicemod link",
+        "schemes": [
+          "voicemod"
+        ]
+      }
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "pacman",
+        "tar.gz"
+      ],
+      "category": "AudioVideo",
+      "icon": "icon.png",
+      "synopsis": "Voicemod voice changer on Linux (Wine + PipeWire)",
+      "desktop": {
+        "entry": {
+          "Name": "Voicemod",
+          "StartupWMClass": "voicemod-linux"
+        }
+      },
+      "syncDesktopName": true
+    },
+    "deb": {
+      "depends": [
+        "wine",
+        "winetricks",
+        "pulseaudio-utils | pipewire-pulse",
+        "python3",
+        "curl",
+        "unzip",
+        "cabextract"
+      ]
+    },
+    "rpm": {
+      "depends": [
+        "wine",
+        "winetricks",
+        "pulseaudio-utils",
+        "python3",
+        "curl",
+        "unzip",
+        "cabextract"
+      ]
+    },
+    "pacman": {
+      "depends": [
+        "wine",
+        "winetricks",
+        "libpulse",
+        "python",
+        "curl",
+        "unzip",
+        "cabextract"
+      ]
+    }
+  },
+  "desktopName": "voicemod-linux.desktop"
+}
