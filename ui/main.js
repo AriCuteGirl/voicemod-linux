@@ -285,7 +285,8 @@ function playingApps() {
   const names = new Set();
   for (const input of inputs) {
     const p = input.properties || {};
-    const name = p['node.name'] || p['application.name'];
+    // Display name; the watcher matches it case-insensitively against PipeWire node names.
+    const name = p['application.name'] || p['node.name'];
     if (!name || /voicemod/i.test(name) || /^wine/.test(p['application.process.binary'] || '')) continue;
     if (Number(p['application.process.id']) === process.pid) continue;
     names.add(name);
