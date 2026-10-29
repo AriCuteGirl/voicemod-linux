@@ -65,8 +65,18 @@ start_watcher() {
         >/dev/null 2>&1 &
 }
 
+# Wine shows the engine as plain "Voicemod.exe ..." (its thread name is Chromium's);
+# WINEPREFIX tells ours apart from engines in other prefixes.
+engine_pids() {
+    local pid prefix
+    for pid in $(pgrep -f '^Voicemod\.exe( |$)'); do
+        prefix="$(tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null | sed -n 's/^WINEPREFIX=//p')"
+        if [ -z "${1:-}" ] || [ "$prefix" = "$WINEPREFIX" ]; then echo "$pid"; fi
+    done
+}
+
 engine_running() {
-    pgrep -f 'VoicemodV3\\app\\Voicemod.exe|VoicemodV3/app/Voicemod.exe' >/dev/null
+    [ -n "$(engine_pids ours)" ]
 }
 
 run_engine() {
@@ -173,7 +183,9 @@ case "${1:-}" in
     stop)
         wineserver -k || true
         pkill -f "vad-watch.py $VM_DATA/vad-clients" || true
-        remove_devices ;;
+        # The virtual devices are shared; leave them while another Voicemod engine still runs.
+        sleep 1
+        [ -n "$(engine_pids)" ] || remove_devices ;;
     "")
         start_engine
         cd "$HERE/ui"

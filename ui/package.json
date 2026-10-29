@@ -1,6 +1,6 @@
 {
   "name": "voicemod-linux",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Run the Voicemod voice changer on Linux: Windows engine under Wine, native window and PipeWire virtual mic",
   "main": "main.js",
   "private": true,
